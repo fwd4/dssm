@@ -36,7 +36,8 @@ class TrainingData:
     def size(self):
         return len(self.clicks)
 
-    def toSparseTensorValue(self,sparse_vecs=[],dim=1):
+    @staticmethod
+    def toSparseTensorValue(sparse_vecs=[],dim=1):
         indices = []
         values = []
         #print 'shape', np.array([len(sparse_vecs),WORD_HASH_DIM], dtype=np.int64).shape
@@ -80,8 +81,8 @@ class TrainingData:
         doc_batch = map(lambda x:self.doc_vecs[x[1]],clicks_batch)
         #print len(query_batch)
         #print len(doc_batch)
-        query_tensor = self.toSparseTensorValue(query_batch,dim=WORD_HASH_DIM)
-        doc_tensor = self.toSparseTensorValue(doc_batch,dim=WORD_HASH_DIM)
+        query_tensor = TrainingData.toSparseTensorValue(query_batch,dim=WORD_HASH_DIM)
+        doc_tensor = TrainingData.toSparseTensorValue(doc_batch,dim=WORD_HASH_DIM)
         return query_tensor,doc_tensor
 
 if __name__ == '__main__':

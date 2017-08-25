@@ -47,6 +47,14 @@ def save_dict(id_table,path):
         dictfile.write('{} {}\n'.format(kv[0],kv[1]))
     dictfile.close()
 
+def load_dict(path):
+    id_map = {}
+    with open(path) as dictfile:
+        for line in dictfile:
+            kv = line.strip("\n").split(" ")
+            id_map[kv[0]] = int(kv[1])
+    return id_map
+
 import operator
 def parse_seq(inpath,query_out,doc_out,wordid_out):
     with open(inpath) as infile,open(query_out,"w") as queryfile,open(doc_out,"w") as docfile:
