@@ -10,13 +10,14 @@ FLAGS = flags.FLAGS
 
 flags.DEFINE_string('summaries_dir', '/tmp/dssm-400-120-relu', 'Summaries directory')
 flags.DEFINE_float('learning_rate', 0.1, 'Initial learning rate.')
-flags.DEFINE_integer('max_steps', 900000, 'Number of steps to run trainer.')
+flags.DEFINE_integer('max_steps', 100000, 'Number of steps to run trainer.')
 #flags.DEFINE_integer('epoch_steps', 18000, "Number of steps in one epoch.")
 #flags.DEFINE_integer('pack_size', 2000, "Number of batches in one pickle pack.")
-flags.DEFINE_bool('gpu', 1, "Enable GPU or not")
+flags.DEFINE_bool('gpu', 0, "Enable GPU or not")
 flags.DEFINE_string('testdata','../data/test',"Test Data path")
 #flags.DEFINE_string('traindata','../data/train',"Training data path")
-flags.DEFINE_string('traindata','../data/test',"Training data path")
+flags.DEFINE_string('traindata','../data/train',"Training data path")
+flags.DEFINE_string('modeldir','../model/',"Model dir")
 
 
 # load training data for now
@@ -95,6 +96,8 @@ with tf.name_scope('L2'):
     doc_l2 = tf.matmul(doc_l1_out, weight2) + bias2
     query_y = tf.nn.relu(query_l2)
     doc_y = tf.nn.relu(doc_l2)
+    query_vec = tf.sqrt(tf.reduce_sum(tf.square(query_y), 1, True),name="query_vec")
+    doc_vec = tf.sqrt(tf.reduce_sum(tf.square(query_y), 1, True),name="doc_vec")
 
 with tf.name_scope('FD_rotate'):
     # Rotate FD+ to produce 50 FD-
@@ -199,6 +202,7 @@ with tf.Session(config=config) as sess:
     sess.run(tf.initialize_all_variables())
     train_writer = tf.summary.FileWriter(FLAGS.summaries_dir + '/train', sess.graph)
     test_writer = tf.summary.FileWriter(FLAGS.summaries_dir + '/test', sess.graph)
+    saver = tf.train.Saver(tf.global_variables(), max_to_keep=1000)
     # Actual execution
     start = time.time()
     # fp_time = 0
@@ -266,7 +270,7 @@ with tf.Session(config=config) as sess:
 
             test_loss = sess.run(loss_summary, feed_dict={average_loss: epoch_loss})
             test_writer.add_summary(test_loss, step + 1)
-
+            saver.save(sess,FLAGS.modeldir,global_step=step)
             start = time.time()
             print ("Epoch #%-5d | Test  Loss: %-4.3f | Calc_LossTime: %-3.3fs" %
                    (step / epoches, epoch_loss, start - end))
