@@ -8,16 +8,16 @@ from datautil import TrainingData
 flags = tf.app.flags
 FLAGS = flags.FLAGS
 
-flags.DEFINE_string('summaries_dir', './log/20170826/', 'Summaries directory')
+flags.DEFINE_string('summaries_dir', './log/20170828/', 'Summaries directory')
 flags.DEFINE_float('learning_rate', 0.1, 'Initial learning rate.')
 flags.DEFINE_integer('max_steps', 100000, 'Number of steps to run trainer.')
 #flags.DEFINE_integer('epoch_steps', 18000, "Number of steps in one epoch.")
 #flags.DEFINE_integer('pack_size', 2000, "Number of batches in one pickle pack.")
 flags.DEFINE_bool('gpu', 0, "Enable GPU or not")
 flags.DEFINE_string('testdata','/data01/dssm/test',"Test Data path")
-#flags.DEFINE_string('traindata','../data/train',"Training data path")
+#flags.DEFINE_string('traindata','/data01/dssm/train',"Training data path")
 flags.DEFINE_string('traindata','/data01/dssm/train',"Training data path")
-flags.DEFINE_string('modeldir','./model/20170826/',"Model dir")
+flags.DEFINE_string('modeldir','./model/20170828/',"Model dir")
 
 
 # load training data for now
@@ -73,15 +73,23 @@ with tf.name_scope('input'):
 
 with tf.name_scope('L1'):
     l1_par_range = np.sqrt(6.0 / (TRIGRAM_D + L1_N))
-    weight1 = tf.Variable(tf.random_uniform([TRIGRAM_D, L1_N], -l1_par_range, l1_par_range))
-    bias1 = tf.Variable(tf.random_uniform([L1_N], -l1_par_range, l1_par_range))
-    variable_summaries(weight1, 'L1_weights')
-    variable_summaries(bias1, 'L1_biases')
+    
+    query_weight1 = tf.Variable(tf.random_uniform([TRIGRAM_D, L1_N], -l1_par_range, l1_par_range))
+    query_bias1 = tf.Variable(tf.random_uniform([L1_N], -l1_par_range, l1_par_range))
+    variable_summaries(query_weight1, 'L1_query_weights')
+    variable_summaries(query_bias1, 'L1_query_biases')
+
+    doc_l1_par_range = np.sqrt(6.0 / (TRIGRAM_D + L1_N))
+    doc_weight1 = tf.Variable(tf.random_uniform([TRIGRAM_D, L1_N], -l1_par_range, l1_par_range))
+    doc_bias1 = tf.Variable(tf.random_uniform([L1_N], -l1_par_range, l1_par_range))
+    
+    variable_summaries(doc_weight1, 'L1_doc_weights')
+    variable_summaries(doc_bias1, 'L1_doc_biases')
 
     # query_l1 = tf.matmul(tf.to_float(query_batch),weight1)+bias1
-    query_l1 = tf.sparse_tensor_dense_matmul(query_batch, weight1) + bias1
+    query_l1 = tf.sparse_tensor_dense_matmul(query_batch, query_weight1) + query_bias1
     # doc_l1 = tf.matmul(tf.to_float(doc_batch),weight1)+bias1
-    doc_l1 = tf.sparse_tensor_dense_matmul(doc_batch, weight1) + bias1
+    doc_l1 = tf.sparse_tensor_dense_matmul(doc_batch, doc_weight1) + doc_bias1
 
     query_l1_out = tf.nn.relu(query_l1)
     doc_l1_out = tf.nn.relu(doc_l1)
@@ -89,13 +97,18 @@ with tf.name_scope('L1'):
 with tf.name_scope('L2'):
     l2_par_range = np.sqrt(6.0 / (L1_N + L2_N))
 
-    weight2 = tf.Variable(tf.random_uniform([L1_N, L2_N], -l2_par_range, l2_par_range))
-    bias2 = tf.Variable(tf.random_uniform([L2_N], -l2_par_range, l2_par_range))
-    variable_summaries(weight2, 'L2_weights')
-    variable_summaries(bias2, 'L2_biases')
+    query_weight2 = tf.Variable(tf.random_uniform([L1_N, L2_N], -l2_par_range, l2_par_range))
+    query_bias2 = tf.Variable(tf.random_uniform([L2_N], -l2_par_range, l2_par_range))
+    variable_summaries(query_weight2, 'L2_query_weights')
+    variable_summaries(query_bias2, 'L2_query_biases')
 
-    query_l2 = tf.matmul(query_l1_out, weight2) + bias2
-    doc_l2 = tf.matmul(doc_l1_out, weight2) + bias2
+    doc_weight2 = tf.Variable(tf.random_uniform([L1_N, L2_N], -l2_par_range, l2_par_range))
+    doc_bias2 = tf.Variable(tf.random_uniform([L2_N], -l2_par_range, l2_par_range))
+    variable_summaries(doc_weight2, 'L2_doc_weights')
+    variable_summaries(doc_bias2, 'L2_doc_biases')
+
+    query_l2 = tf.matmul(query_l1_out, query_weight2) + query_bias2
+    doc_l2 = tf.matmul(doc_l1_out, doc_weight2) + doc_bias2
     query_y = tf.nn.relu(query_l2,name="query_vec")
     doc_y = tf.nn.relu(doc_l2,name="doc_vec")
     #query_vec = tf.sqrt(tf.reduce_sum(tf.square(query_y), 1, True),name="query_vec")
@@ -195,7 +208,7 @@ def feed_dict(Train,batch_idx):
         return {query_batch:query_in,doc_batch:doc_in}
 
 
-config = tf.ConfigProto()  # log_device_placement=True)
+config = tf.ConfigProto(intra_op_parallelism_threads=32,inter_op_parallelism_threads=16)  # log_device_placement=True)
 config.gpu_options.allow_growth = True
 #if not FLAGS.gpu:
 #config = tf.ConfigProto(device_count= {'GPU' : 0})
@@ -211,17 +224,6 @@ with tf.Session(config=config) as sess, tf.device('/cpu:0'):
     # fbp_time = 0
     for step in range(FLAGS.max_steps):
         batch_idx = step % epoches
-        # if batch_idx % FLAGS.pack_size == 0:
-        #    load_train_data(batch_idx / FLAGS.pack_size + 1)
-
-            # # setup toolbar
-            # sys.stdout.write("[%s]" % (" " * toolbar_width))
-            # #sys.stdout.flush()
-            # sys.stdout.write("\b" * (toolbar_width + 1))  # return to start of line, after '['
-        #if batch_idx == 0:
-        #    temp = sess.run(query_y, feed_dict={query_batch:query_bs,doc_batch:doc_bs})
-        #    print(np.count_nonzero(temp))
-        #    sys.exit()
 
         if batch_idx % 100 == 0:
             progress = 100.0 * batch_idx / epoches

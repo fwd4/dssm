@@ -26,7 +26,7 @@ class SparseVector:
                 vecs.append(vec)
         return vecs
 
-WORD_HASH_DIM = 7415
+WORD_HASH_DIM = 9289
 class TrainingData:
     def __init__(self):
         self.query_vecs = []
@@ -37,7 +37,7 @@ class TrainingData:
         return len(self.clicks)
 
     @staticmethod
-    def toSparseTensorValue(sparse_vecs=[],dim=1):
+    def toSparseTensorValue(sparse_vecs=[],dim=WORD_HASH_DIM):
         indices = []
         values = []
         #print 'shape', np.array([len(sparse_vecs),WORD_HASH_DIM], dtype=np.int64).shape
@@ -49,7 +49,7 @@ class TrainingData:
         tensor = tf.SparseTensorValue(
             indices=indices, #indices
             values=values, #value
-            dense_shape=[len(sparse_vecs),WORD_HASH_DIM] #shape
+            dense_shape=[len(sparse_vecs),dim] #shape
         )
         return tensor
         #return indices,values,[len(sparse_vecs),WORD_HASH_DIM]
