@@ -20,3 +20,5 @@ cut -d$'\t' -f1 /data01/dssm/$date/query_vec > /data01/dssm/$date/query_vec.id
 cut -d$'\t' -f2 /data01/dssm/$date/query_vec > /data01/dssm/$date/query_vec.vec
 
 python -m util.findknn --queryvec /data01/dssm/$date/query_vec.vec --queryid /data01/dssm/$date/query_vec.id --docvec /data01/dssm/$date/doc_vec.vec --docid /data01/dssm/$date/doc_vec.id --outfile /data01/dssm/$date/part.res.csv
+
+aws s3 cp /data01/dssm/$date/part.res.csv s3://feednews-video-$mktprefix/coldstart/predict_res/$date/

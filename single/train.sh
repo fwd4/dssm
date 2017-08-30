@@ -1,0 +1,1 @@
+nohup python dssm_v3.py --summaries_dir /opt/dssm/log/20170828_related/ --testdata /data01/dssm_relatedvideo/20170828/test --traindata /data01/dssm_relatedvideo/20170828/train --modeldir /data01/dssm_relatedvideo/20170828/model/ > dssm_20170828.txt &
