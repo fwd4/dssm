@@ -7,8 +7,7 @@ import tensorflow as tf
 from datautil import TrainingData
 flags = tf.app.flags
 FLAGS = flags.FLAGS
-
-flags.DEFINE_string('summaries_dir', './log/20170826/', 'Summaries directory')
+flags.DEFINE_string('summaries_dir', './log/20170828_related/', 'Summaries directory')
 flags.DEFINE_float('learning_rate', 0.1, 'Initial learning rate.')
 flags.DEFINE_integer('max_steps', 100000, 'Number of steps to run trainer.')
 #flags.DEFINE_integer('epoch_steps', 18000, "Number of steps in one epoch.")
@@ -17,23 +16,23 @@ flags.DEFINE_bool('gpu', 0, "Enable GPU or not")
 flags.DEFINE_string('testdata','/data01/dssm/test',"Test Data path")
 #flags.DEFINE_string('traindata','../data/train',"Training data path")
 flags.DEFINE_string('traindata','/data01/dssm/train',"Training data path")
-flags.DEFINE_string('modeldir','./model/20170826/',"Model dir")
-
+flags.DEFINE_string('modeldir','./model/20170828_related/',"Model dir")
+flags.DEFINE_int('wordhashdim')
 
 # load training data for now
 start = time.time()
-print 'Start to loading test data'
+print 'Start to loading test data ',FLAGS.testdata
 test_data = TrainingData()
 test_data.load_data('{}.queryvec'.format(FLAGS.testdata),'{}.docvec'.format(FLAGS.testdata))
 
-print 'Start to loading training data'
+print 'Start to loading training data ',FLAGS.traindata
 train_data = TrainingData()
 train_data.load_data('{}.queryvec'.format(FLAGS.traindata),'{}.docvec'.format(FLAGS.traindata))
 
 end = time.time()
 print("Loading data from HDD to memory: %.2fs" % (end - start))
 
-TRIGRAM_D = 9289
+TRIGRAM_D = FLAGS.wordhashdim
 
 NEG = 50
 BS = 512
@@ -182,7 +181,7 @@ def feed_dict(Train, batch_idx):
 
 def feed_dict(Train,batch_idx):
     if Train:
-        query_in, doc_in = train_data.get_batch(BS,batch_idx)
+        query_in, doc_in = train_data.get_batch(BS,batch_idx,FLAGS.wordhashdim)
         if query_in is None or doc_in is None:
             return None
         #print "query_in",query_in

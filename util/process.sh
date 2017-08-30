@@ -1,3 +1,4 @@
+#!/bin/bash
 date=20170828
 set -x
 rm -rf /data01/dssm/$date/query/

@@ -26,7 +26,7 @@ class SparseVector:
                 vecs.append(vec)
         return vecs
 
-WORD_HASH_DIM = 9289
+WORD_HASH_DIM = 9350
 class TrainingData:
     def __init__(self):
         self.query_vecs = []
@@ -72,7 +72,7 @@ class TrainingData:
             assert len(self.query_vecs)==len(self.doc_vecs)
             self.clicks = [(x,x) for x in range(len(self.query_vecs))]
 
-    def get_batch(self,batch_size,batch_id):
+    def get_batch(self,batch_size,batch_id,wordhashdim=WORD_HASH_DIM):
         if batch_size*(batch_id+1) > len(self.clicks):
             print "None returned"
             return None,None
@@ -81,8 +81,8 @@ class TrainingData:
         doc_batch = map(lambda x:self.doc_vecs[x[1]],clicks_batch)
         #print len(query_batch)
         #print len(doc_batch)
-        query_tensor = TrainingData.toSparseTensorValue(query_batch,dim=WORD_HASH_DIM)
-        doc_tensor = TrainingData.toSparseTensorValue(doc_batch,dim=WORD_HASH_DIM)
+        query_tensor = TrainingData.toSparseTensorValue(query_batch,dim=wordhashdim)
+        doc_tensor = TrainingData.toSparseTensorValue(doc_batch,dim=wordhashdim)
         return query_tensor,doc_tensor
 
 if __name__ == '__main__':

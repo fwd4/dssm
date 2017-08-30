@@ -1,5 +1,15 @@
 import re
 import sys
+
+import argparse
+parser = argparse.ArgumentParser()
+parser.add_argument('--datatype',type=str,help="input data source related or clickseq",default='clickseq')
+parser.add_argument('--infile',type=str,help="input text file",default="/opt/dssm/data/data.0")
+parser.add_argument('--queryout',type=str,help="result vec file",default="/opt/dssm/data/queryvec.out")
+parser.add_argument('--docout',type=str,help="result vec file",default="/opt/dssm/data/docvec.out")
+parser.add_argument('--wordhash',type=str,default="/opt/dssm/data/wordid")
+args = parser.parse_args()
+
 id_table = {} #map trigram to trigram ID
 query_id = {}
 doc_id = {}
@@ -90,8 +100,28 @@ def parse_seq(inpath,query_out,doc_out,wordid_out):
             docfile.write(res_str+"\n")
     save_dict(id_table,wordid_out)
 
+def process_related(inpath,query_out,doc_out,wordid_out):
+    with open(inpath) as infile,open(query_out,"w") as queryfile,open(doc_out,"w") as docfile:
+        for line in open(args.infile):
+            pars = line.split('\t')
+            if len(pars)!=5: continue
+            src_title = pars[2]
+            related_title = pars[3]
+            wordhash = encode(title2trigams(src_title))
+            if len(wordhash) == 0:
+                continue
+            res_str = ' '.join(["{}:1.0".format(str(x)) for x in wordhash])
+            queryfile.write(res_str+"\n")
+            
+            wordhash = encode(title2trigams(related_title))        
+            if len(wordhash) == 0:
+                continue
+            res_str = ' '.join(["{}:1.0".format(str(x)) for x in wordhash])
+            docfile.write(res_str+"\n")
+    save_dict(id_table,wordid_out)
+
 def seperate_process():
-    query_inpath = sys.argv[1]
+    query_inpath = args.infile
     doc_inpath = sys.argv[2]
     query_outpath = query_inpath+".out"
     doc_outpath = doc_inpath+".out"
@@ -106,8 +136,10 @@ def seperate_process():
     save_dict(doc_id,doc_inpath+".docid")
 
 if __name__ == '__main__':
-    parse_seq(sys.argv[1],sys.argv[2],sys.argv[3],sys.argv[4])
-
+    if args.datatype=='related':
+       process_related(args.infile,args.queryout,args.docout,args.wordhash)
+    elif args.datatype=='clickseq':
+       parse_seq(args.infile,args.queryout,args.docout,args.wordhash)
 
 
 
