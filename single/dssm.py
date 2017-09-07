@@ -5,17 +5,10 @@ import random
 import time
 import sys
 import numpy as np
-import scipy as sp
 import tensorflow as tf
 
 flags = tf.app.flags
 FLAGS = flags.FLAGS
-
-BS = 1000
-NEG = int(sys.argv[1])
-TRIGRAM_D = 32049
-L1_N = 400
-L2_N = 120
 
 flags.DEFINE_string('summaries_dir', '/tmp/dssm-400-120-relu', 'Summaries directory')
 flags.DEFINE_float('learning_rate', 0.1, 'Initial learning rate.')
@@ -26,31 +19,34 @@ flags.DEFINE_bool('gpu', 1, "Enable GPU or not")
 
 start = time.time()
 
-def load_sparse_csr(filename):
-    loader = np.load(filename + '.npz')
-    return sp.sparse.csr_matrix((loader['data'], loader['indices'], loader['indptr']), shape=loader['shape'])
-
 doc_train_data = None
 query_train_data = None
 
 # load test data for now
-query_test_data = load_sparse_csr("./data/query_csr_test_0")
-doc_test_data = load_sparse_csr("./data/title_csr_test_0")
-
+query_test_data = pickle.load(open('../data/query.test.1.pickle', 'rb')).tocsr()
+doc_test_data = pickle.load(open('../data/doc.test.1.pickle', 'rb')).tocsr()
 
 def load_train_data(pack_idx):
     global doc_train_data, query_train_data
     doc_train_data = None
     query_train_data = None
     start = time.time()
-    doc_train_data = load_sparse_csr("./data/title_csr_train_{}".format(pack_idx))
-    query_train_data = load_sparse_csr("./data/query_csr_train_{}".format(pack_idx))
+    doc_train_data = pickle.load(open('../data/doc.train.' + str(pack_idx)+ '.pickle', 'rb')).tocsr()
+    query_train_data = pickle.load(open('../data/query.train.'+ str(pack_idx)+ '.pickle', 'rb')).tocsr()
     end = time.time()
     print("\nTrain data {} is loaded in {:.2f}".format(pack_idx, end - start))
 
 
 end = time.time()
 print("Loading data from HDD to memory: %.2fs" % (end - start))
+
+TRIGRAM_D = 49284
+
+NEG = 50
+BS = 1000
+
+L1_N = 400
+L2_N = 120
 
 def variable_summaries(var, name):
     """Attach a lot of summaries to a Tensor."""
@@ -66,7 +62,9 @@ def variable_summaries(var, name):
 
 
 with tf.name_scope('input'):
+    # Shape [BS, TRIGRAM_D].
     query_batch = tf.sparse_placeholder(tf.float32, name='QueryBatch')
+    # Shape [BS, TRIGRAM_D]
     doc_batch = tf.sparse_placeholder(tf.float32, name='DocBatch')
 
 with tf.name_scope('L1'):
@@ -76,7 +74,9 @@ with tf.name_scope('L1'):
     variable_summaries(weight1, 'L1_weights')
     variable_summaries(bias1, 'L1_biases')
 
+    # query_l1 = tf.matmul(tf.to_float(query_batch),weight1)+bias1
     query_l1 = tf.sparse_tensor_dense_matmul(query_batch, weight1) + bias1
+    # doc_l1 = tf.matmul(tf.to_float(doc_batch),weight1)+bias1
     doc_l1 = tf.sparse_tensor_dense_matmul(doc_batch, weight1) + bias1
 
     query_l1_out = tf.nn.relu(query_l1)
@@ -127,6 +127,11 @@ with tf.name_scope('Training'):
     # Optimizer
     train_step = tf.train.GradientDescentOptimizer(FLAGS.learning_rate).minimize(loss)
 
+# with tf.name_scope('Accuracy'):
+#     correct_prediction = tf.equal(tf.argmax(prob, 1), 0)
+#     accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+#     tf.scalar_summary('accuracy', accuracy)
+
 merged = tf.summary.merge_all()
 
 with tf.name_scope('Test'):
@@ -135,10 +140,13 @@ with tf.name_scope('Test'):
 
 
 def pull_batch(query_data, doc_data, batch_idx):
+    # start = time.time()
     query_in = query_data[batch_idx * BS:(batch_idx + 1) * BS, :]
     doc_in = doc_data[batch_idx * BS:(batch_idx + 1) * BS, :]
     query_in = query_in.tocoo()
     doc_in = doc_in.tocoo()
+
+
 
     query_in = tf.SparseTensorValue(
         indices=np.transpose([np.array(query_in.row, dtype=np.int64), np.array(query_in.col, dtype=np.int64)]),
@@ -148,6 +156,9 @@ def pull_batch(query_data, doc_data, batch_idx):
         indices=np.transpose([np.array(doc_in.row, dtype=np.int64), np.array(doc_in.col, dtype=np.int64)]),
         values=np.array(doc_in.data, dtype=np.float),
         dense_shape=np.array(doc_in.shape, dtype=np.int64))
+
+    # end = time.time()
+    # print("Pull_batch time: %f" % (end - start))
 
     return query_in, doc_in
 
@@ -161,8 +172,10 @@ def feed_dict(Train, batch_idx):
     return {query_batch: query_in, doc_batch: doc_in}
 
 
-config = tf.ConfigProto()
+config = tf.ConfigProto()  # log_device_placement=True)
 config.gpu_options.allow_growth = True
+#if not FLAGS.gpu:
+#config = tf.ConfigProto(device_count= {'GPU' : 0})
 
 with tf.Session(config=config) as sess:
     sess.run(tf.global_variables_initializer())
