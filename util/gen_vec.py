@@ -9,7 +9,7 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('--infile',type=str,help="input text file",default="/opt/dssm/data/data.0")
 parser.add_argument('--outfile',type=str,help="result vec file",default="/opt/dssm/data/queryvec.out")
-parser.add_argument('--modeldir',type=str,default="/opt/dssm/model/")
+parser.add_argument('--modelpath',type=str)
 parser.add_argument('--wordhash',type=str,default="/opt/dssm/data/wordid")
 parser.add_argument('--wordhashdim',type=int,help="word hash dimension")
 parser.add_argument('--vectype',type=str,help="specify query vector or doc vector",default="queryvec")
@@ -37,8 +37,8 @@ def load(inpath,dictpath):
 if __name__ == '__main__':
     ids,vecs = load(args.infile,args.wordhash)
     outfile = open(args.outfile,mode='w')
-    checkpoint_file = tf.train.latest_checkpoint(args.modeldir)
-    checkpoint_file = "/opt/dssm/model/20170828/-8314"
+    checkpoint_file = args.modelpath#tf.train.latest_checkpoint(args.modeldir)
+    #checkpoint_file = "/opt/dssm/model/20170828/-8314"
     batch_size = 512
     print '################checkpoint_file \n',checkpoint_file
     graph = tf.Graph()
