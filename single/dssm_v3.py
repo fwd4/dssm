@@ -17,7 +17,7 @@ flags.DEFINE_string('testdata','/data01/dssm/test',"Test Data path")
 #flags.DEFINE_string('traindata','../data/train',"Training data path")
 flags.DEFINE_string('traindata','/data01/dssm/train',"Training data path")
 flags.DEFINE_string('modeldir','./model/20170828_related/',"Model dir")
-flags.DEFINE_int('wordhashdim')
+flags.DEFINE_integer('wordhashdim',-1,"wordhashdim")
 
 # load training data for now
 start = time.time()
@@ -37,8 +37,8 @@ TRIGRAM_D = FLAGS.wordhashdim
 NEG = 50
 BS = 512
 
-L1_N = 400
-L2_N = 120
+L1_N = 256
+L2_N = 128
 
 query_in_shape = np.array([BS, TRIGRAM_D], np.int64)
 doc_in_shape = np.array([BS, TRIGRAM_D], np.int64)
@@ -95,8 +95,8 @@ with tf.name_scope('L2'):
 
     query_l2 = tf.matmul(query_l1_out, weight2) + bias2
     doc_l2 = tf.matmul(doc_l1_out, weight2) + bias2
-    query_y = tf.nn.relu(query_l2,name="query_vec")
-    doc_y = tf.nn.relu(doc_l2,name="doc_vec")
+    query_y = tf.nn.tanh(query_l2,name="query_vec")
+    doc_y = tf.nn.tanh(doc_l2,name="doc_vec")
     #query_vec = tf.sqrt(tf.reduce_sum(tf.square(query_y), 1, True),name="query_vec")
     #doc_vec = tf.sqrt(tf.reduce_sum(tf.square(doc_y), 1, True),name="doc_vec")
 
@@ -188,7 +188,7 @@ def feed_dict(Train,batch_idx):
         #print "doc_in",doc_in
         return {query_batch:query_in,doc_batch:doc_in}
     else:
-        query_in, doc_in = test_data.get_batch(BS,batch_idx)
+        query_in, doc_in = test_data.get_batch(BS,batch_idx,FLAGS.wordhashdim)
         if query_in is None or doc_in is None:
             return None
         return {query_batch:query_in,doc_batch:doc_in}

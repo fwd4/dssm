@@ -1,1 +1,2 @@
-nohup python dssm_v3.py --summaries_dir /opt/dssm/log/20170828_related/ --testdata /data01/dssm_relatedvideo/20170828/test --traindata /data01/dssm_relatedvideo/20170828/train --modeldir /data01/dssm_relatedvideo/20170828/model/ > dssm_20170828.txt &
+python dssm_v3.py --summaries_dir /opt/dssm/log/20170907/ --testdata /data01/dssm/title_pair/back30/test --traindata /data01/dssm/title_pair/back30/train --modeldir /data01/dssm/20170907/model/ --wordhashdim 10580 > dssm_20170907.txt 
+#nohup python dssm_v3.py --summaries_dir /opt/dssm/log/20170828_related/ --testdata /data01/dssm_relatedvideo/20170828/test --traindata /data01/dssm_relatedvideo/20170828/train --modeldir /data01/dssm_relatedvideo/20170828/model/ > dssm_20170828.txt &

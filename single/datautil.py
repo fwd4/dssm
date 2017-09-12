@@ -69,10 +69,35 @@ class TrainingData:
         if clicks_file:
             self.clicks = self.load_clicks(clicks_file)
         else:
-            assert len(self.query_vecs)==len(self.doc_vecs)
-            self.clicks = [(x,x) for x in range(len(self.query_vecs))]
+            #assert len(self.query_vecs)==len(self.doc_vecs)
+            self.clicks = [(x,x) for x in range(len(self.doc_vecs))]
 
     def get_batch(self,batch_size,batch_id,wordhashdim=WORD_HASH_DIM):
+        if batch_size*(batch_id+1) > len(self.clicks):
+            print "None returned"
+            return None,None
+        clicks_batch = self.clicks[batch_size*batch_id:batch_size*(batch_id+1)]
+        query_batch = map(lambda x:self.query_vecs[x[0]],clicks_batch)
+        doc_batch = map(lambda x:self.doc_vecs[x[1]],clicks_batch)
+        #print len(query_batch)
+        #print len(doc_batch)
+        query_tensor = TrainingData.toSparseTensorValue(query_batch,dim=wordhashdim)
+        doc_tensor = TrainingData.toSparseTensorValue(doc_batch,dim=wordhashdim)
+        return query_tensor,doc_tensor
+
+    def get_query_batch(self,batch_size,batch_id,wordhashdim):
+        if batch_size*(batch_id+1) > len(self.query_vecs):
+            return None
+        query_batch = self.query_vecs[batch_size*batch_id:batch_size*(batch_id+1)]
+        return TrainingData.toSparseTensorValue(query_batch,dim=wordhashdim)
+
+    def get_doc_batch(self,batch_size, batch_id, wordhashdim):
+        if batch_size*(batch_id+1) > len(self.doc_vecs):
+            return None
+        doc_batch = self.doc_vecs[batch_size*batch_id:batch_size*(batch_id+1)]
+        return TrainingData.toSparseTensorValue(doc_batch,dim=wordhashdim)
+ 
+    def get_NQuery_batch(self,batch_size,batch_id,queryNum,wordhashdim=WORD_HASH_DIM):
         if batch_size*(batch_id+1) > len(self.clicks):
             print "None returned"
             return None,None
